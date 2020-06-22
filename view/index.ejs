@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DilemmaBot Chart</title>
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
+</head>
+<body>
+    <section class="section container row">
+        <h3 class="col s12 center">Question</h3>
+        <h5 class="col s12 center"><%=question></h5>
+    </section>
+    <section class="section row">
+        <h3 class="col s12 center container ">Question</h3>
+        <div class="col s12 center" style="max-height: 600px; max-width: 600px;">
+            <canvas id="myChart" height="260px" width="260px"></canvas>
+        </div>
+    </section>
+    <p id="ans" style="display:none;opacity: 0;"><%=ans%></p>
+    <p id="score" style="display:none;opacity: 0;"><%=score%></p>
+    <script>
+        document.addEventListener('DomContentLoaded',()=>{
+            let ansString = document.getElementById('ans').innerText;
+            let scoreString = document.getElementById('score').innerText;
+            ansString = ansString.substring(1,ansString.length-2);
+            scoreString = scoreString.substring(1,scoreString.length-2);
+
+            const ansArray = ansString.split(',');
+            const scoreArray = scoreString.split(',');
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: scoreArray
+                    }],
+                    labels: ansArray
+                }
+            });
+        })   
+    </script>
+</body>
+</html>
