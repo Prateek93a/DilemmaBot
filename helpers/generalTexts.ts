@@ -25,7 +25,7 @@ export default {
     notUnderstand: "Sorry I don't understand what you mean.",
     pollCreated: "Done! Your poll has been created. Now wait for some time, preferably an hour or two, before you end the poll to see the results.",
     error: "There is an error. Please try again from the begining.",
-    emptyQues: "Please provide valid question.",
+    emptyQues: "You need to provide a textual description of your problem with images(optional).",
     afterGuide1: "Finish the question.",
     afterGuide2: "Provide the remaining options.",
     ongoingStart: "Please complete the current flow before starting another. Alternatively you can tell me to end this flow.",

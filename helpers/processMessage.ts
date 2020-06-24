@@ -71,13 +71,27 @@ const isImageValid = (senderId: any, url: string) => new Promise(async(resolve, 
 		let filename = senderId + '' + Math.floor(Math.random()*Math.floor(Math.random()*1000)) + '.png';
 		await downloadImage(url, filename);
 		console.log('File downloaded');
-		const [result] = await visionClient.safeSearchDetection(`./${filename}`);
-		console.log('File analysised');
+		let [result] = await visionClient.textDetection(`./${filename}`);
+		const detections = result.textAnnotations;
+		let text:string = '';
+		for(let i = 0; i < detections.length; i++){
+			text += ' ' + detections[i].description || '';
+		}
+		text = text.trim();
+		const sanitizedText = filter.clean(text);
+		console.log('File analysised for text content');
+		if(text != sanitizedText){
+			await deleteImage(filename);
+			console.log('File deleted');
+			return resolve(false);
+		}
+		[result] = await visionClient.safeSearchDetection(`./${filename}`);
+		const ImageResult = result;
+		console.log('File analysised for image content');
 		await deleteImage(filename);
 		console.log('File deleted');
-		if(result.safeSearchAnnotation){
-			console.log(result.safeSearchAnnotation);
-			const {adultConfidence, nsfwConfidence, racyConfidence, violenceConfidence, adult, racy, violence} = result.safeSearchAnnotation;
+		if(ImageResult.safeSearchAnnotation){
+			const {adultConfidence, nsfwConfidence, racyConfidence, violenceConfidence, adult, racy, violence} = ImageResult.safeSearchAnnotation;
 			resolve(!(adultConfidence > 0.7 || nsfwConfidence > 0.7 || racyConfidence > 0.7 || violenceConfidence > 0.7 || invalidPossibilityArray.includes(adult as string) || invalidPossibilityArray.includes(racy as string) || invalidPossibilityArray.includes(violence as string)));
 		}else{
 			resolve(true);
@@ -95,6 +109,7 @@ const sendTextMessage = (senderId, text) => {
 };
 
 const sendButtonMessage = async(senderId, question: string, answers: Array<any>, scores: Array<any>) => {
+	await sendSignal(senderId, objectKeys.typingOn);
 	let ansArray:string[] = [];
 	for(let i = 0; i < answers.length; i++){
 		ansArray.push('Option '+optionsArray[i]);
@@ -111,6 +126,7 @@ const sendButtonMessage = async(senderId, question: string, answers: Array<any>,
 	const responseObj = buttonTemplate(choices, url);
 	const responseMessage = constructResponse.message(senderId, responseObj);
 	await request(responseMessage);
+	await sendSignal(senderId, objectKeys.typingOff);
 };
 
 const sendImages = (senderId: any, url: string) => {
@@ -131,7 +147,6 @@ const sendQuestion = async(senderId, poll) => {
 			await sendImages(senderId, poll.imageUrls[i]);
 		}
 	}
-	await sendSignal(senderId, objectKeys.typingOff);
 	// send options with quick replies
 	let choices: string = 'Choices available:\n';
 	for(let i = 0; i < poll.answers.length; i++){
@@ -144,6 +159,7 @@ const sendQuestion = async(senderId, poll) => {
 			"payload": '' + index,
 		}
 	));
+	await sendSignal(senderId, objectKeys.typingOff);
 	const responseObj = quickReplies(choices, answers);
 	const responseMessage = constructResponse.message(senderId, responseObj);
 	await request(responseMessage);
@@ -301,6 +317,7 @@ const handleStart = async(senderId) => {
 	}
 	// ask for question
 	try{
+		await sendSignal(senderId, objectKeys.typingOn);
 		await client.query(sqlCommands.updateUserState([1,senderId])); 
 		const {rows} = await client.query(sqlCommands.findIfAsked([senderId]));
 		const row = rows[0];
@@ -311,6 +328,7 @@ const handleStart = async(senderId) => {
 			await client.query(sqlCommands.changeIfAsked([1,senderId]));
 			await sendTextMessage(senderId, generalTexts.start1);
 		}
+		await sendSignal(senderId, objectKeys.typingOff);
 	}catch(err){
 		console.log(err);
 		return handleError(senderId);
@@ -793,7 +811,7 @@ const handleFlow = async(senderId, message) => {
 }
 
 const checkEntity = (entity: any, command: string): boolean => {
-	return (entity[command] && entity[command][0].confidence >= 0.88);
+	return (entity[command] && entity[command][0].confidence >= 0.87);
 }
 
 const handleMessageEvent = async(event) => {
@@ -804,7 +822,6 @@ const handleMessageEvent = async(event) => {
 
 	// check if user has sent an attachment
 	if(message.attachments && message.attachments != {}){
-		console.log(message.attachments);
 		handleFlow(senderId, message);
 		return;
 	}
